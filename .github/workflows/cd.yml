@@ -1,0 +1,63 @@
+name: Deploy to AWS
+
+on:
+  workflow_call:
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      AWS_SESSION_TOKEN:
+        required: true
+      AWS_REGION_DEFAULT:
+        required: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+  steps:
+  - name: Checkout repository
+    uses: actions/checkout@v2
+
+  # Configuração do Go (caso esteja usando Go, se for outro, ajuste conforme necessário)
+  - name: Set up Go
+    uses: actions/setup-go@v2
+    with:
+      go-version: '1.23.7' 
+
+  # Instalar dependências
+  - name: Install dependencies
+    run: |
+      go mod tidy
+
+  # Build do código (compilar o executável)
+  - name: Build Go application
+    run: |
+      GOOS=linux GOARCH=arm64 go build -tags lambda.norpc -o bootstrap main.go
+
+  # Compactar o código para upload (arquivo ZIP)
+  - name: Create deployment package
+    run: |
+      zip myFunction.zip bootstrap
+  
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_REGION_DEFAULT }}
+
+      - name: Update Lambda
+        run: |
+            aws lambda update-function-code \
+            --function-name lambdasample \        # Nome da função Lambda que você está atualizando
+            --zip-file fileb://myFunction.zip \   # Caminho para o arquivo ZIP com o código da função Lambda
+            --region ${{ secrets.AWS_REGION_DEFAULT }}
