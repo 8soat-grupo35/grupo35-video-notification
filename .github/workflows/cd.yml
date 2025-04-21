@@ -6,31 +6,31 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-  steps:
-  - name: Checkout repository
-    uses: actions/checkout@v2
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-  # Configuração do Go (caso esteja usando Go, se for outro, ajuste conforme necessário)
-  - name: Set up Go
-    uses: actions/setup-go@v2
-    with:
-      go-version: '1.23.7' 
+    # Configuração do Go (caso esteja usando Go, se for outro, ajuste conforme necessário)
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: '1.23.7' 
 
-  # Instalar dependências
-  - name: Install dependencies
-    run: |
-      go mod tidy
+    # Instalar dependências
+    - name: Install dependencies
+      run: |
+        go mod tidy
 
-  # Build do código (compilar o executável)
-  - name: Build Go application
-    run: |
-      GOOS=linux GOARCH=arm64 go build -tags lambda.norpc -o bootstrap main.go
+    # Build do código (compilar o executável)
+    - name: Build Go application
+      run: |
+        GOOS=linux GOARCH=arm64 go build -tags lambda.norpc -o bootstrap main.go
 
-  # Compactar o código para upload (arquivo ZIP)
-  - name: Create deployment package
-    run: |
-      zip myFunction.zip bootstrap
-  
+    # Compactar o código para upload (arquivo ZIP)
+    - name: Create deployment package
+      run: |
+        zip myFunction.zip bootstrap
+    
   deploy:
     runs-on: ubuntu-latest
 
