@@ -1,2 +1,19 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# env file
+.env
+*.zip
+
+
+# Dependency directories (remove the comment below to include it)
+vendor/
+build/
+
 bootstrap
-myFunction.zip
+
+cov.out
