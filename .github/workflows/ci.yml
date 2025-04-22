@@ -31,3 +31,19 @@ jobs:
     # - name: Run tests
     #   run: |
     #     go test -v ./...
+
+    # Rodar Sonar
+    - name: SonarQube Scan
+      uses: SonarSource/sonarqube-scan-action@v4
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        
+    # Rodar Sonar Quality Gate
+    - name: SonarQube Quality Gate check
+      id: sonarqube-quality-gate-check
+      uses: sonarsource/sonarqube-quality-gate-action@master
+      if: github.ref == 'refs/heads/main'
+      with:
+        pollingTimeoutSec: 600
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
