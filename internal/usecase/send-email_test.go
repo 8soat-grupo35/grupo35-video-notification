@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/8soat-grupo35/grupo35-video-notification/internal/domain"
+	domain "github.com/8soat-grupo35/grupo35-video-notification/internal/domain/entity"
 	"github.com/8soat-grupo35/grupo35-video-notification/internal/usecase"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

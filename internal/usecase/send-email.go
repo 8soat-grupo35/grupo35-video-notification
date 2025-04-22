@@ -3,21 +3,18 @@ package usecase
 import (
 	"context"
 
-	"github.com/8soat-grupo35/grupo35-video-notification/internal/domain"
+	domain "github.com/8soat-grupo35/grupo35-video-notification/internal/domain/entity"
+	"github.com/8soat-grupo35/grupo35-video-notification/internal/domain/service"
 )
 
-type EmailService interface {
-	SendEmail(ctx context.Context, from string, email *domain.Email) error
-}
-
 type SendEmailUseCase struct {
-	emailService EmailService
+	EmailService service.EmailService
 }
 
-func NewSendEmailUseCase(emailService EmailService) *SendEmailUseCase {
-	return &SendEmailUseCase{emailService: emailService}
+func NewSendEmailUseCase(emailService service.EmailService) *SendEmailUseCase {
+	return &SendEmailUseCase{EmailService: emailService}
 }
 
 func (uc *SendEmailUseCase) Execute(ctx context.Context, from string, email *domain.Email) error {
-	return uc.emailService.SendEmail(ctx, from, email)
+	return uc.EmailService.SendEmail(ctx, from, email)
 }

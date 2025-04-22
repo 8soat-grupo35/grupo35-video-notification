@@ -1,22 +1,22 @@
-package awsresources
+package email
 
 import (
 	"context"
 	"fmt"
 	"log"
 
-	"github.com/8soat-grupo35/grupo35-video-notification/internal/domain"
+	domain "github.com/8soat-grupo35/grupo35-video-notification/internal/domain/entity"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 )
 
 type SESService struct {
-	client *SESClient
+	Client *sesv2.Client
 }
 
-func NewSESService(client *SESClient) *SESService {
-	return &SESService{client: client}
+func NewSESService(client *sesv2.Client) *SESService {
+	return &SESService{Client: client}
 }
 
 func (s *SESService) SendEmail(ctx context.Context, from string, email *domain.Email) error {
@@ -40,7 +40,7 @@ func (s *SESService) SendEmail(ctx context.Context, from string, email *domain.E
 		},
 	}
 
-	_, err := s.client.Client.SendEmail(ctx, input)
+	_, err := s.Client.SendEmail(ctx, input)
 	if err != nil {
 		log.Printf("Erro ao enviar e-mail: %v", err)
 		return fmt.Errorf("falha ao enviar e-mail: %w", err)
