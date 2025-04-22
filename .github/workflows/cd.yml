@@ -53,4 +53,4 @@ jobs:
 
     - name: Update Config
       run: |
-        aws lambda update-function-configuration --function-name lambdasample --environment "Variables={BUCKET_NAME=${{ vars.BUCKET_NAME }},FROM_EMAIL=${{ var.FROM_EMAIL }}}"  
+        aws lambda update-function-configuration --function-name lambdasample --environment "Variables={BUCKET_NAME=${{ vars.BUCKET_NAME }},FROM_EMAIL=${{ vars.FROM_EMAIL }}}"  
