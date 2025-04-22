@@ -50,3 +50,7 @@ jobs:
     - name: Update Lambda
       run: |
         aws lambda update-function-code --function-name lambdasample --zip-file fileb://myFunction.zip --region ${{ secrets.AWS_REGION_DEFAULT }}
+
+    - name: Update Config
+      run: |
+        aws lambda update-function-configuration --function-name lambdasample --environment "Variables={BUCKET_NAME=${{ vars.BUCKET_NAME }},FROM_EMAIL=${{ var.FROM_EMAIL }}}"  
