@@ -33,6 +33,7 @@ jobs:
     
   deploy:
     runs-on: ubuntu-latest
+    needs: build  # Garantir que o deploy só será feito após a construção do código
 
     steps:
       - name: Checkout code
@@ -43,12 +44,12 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          # aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ secrets.AWS_REGION_DEFAULT }}
 
       - name: Update Lambda
         run: |
-            aws lambda update-function-code \
-            --function-name lambdasample \        # Nome da função Lambda que você está atualizando
-            --zip-file fileb://myFunction.zip \   # Caminho para o arquivo ZIP com o código da função Lambda
+            aws lambda update-function-code 
+            --function-name lambdasample         # Nome da função Lambda que você está atualizando
+            --zip-file fileb://myFunction.zip    # Caminho para o arquivo ZIP com o código da função Lambda
             --region ${{ secrets.AWS_REGION_DEFAULT }}

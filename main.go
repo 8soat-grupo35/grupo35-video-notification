@@ -5,17 +5,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 )
 
 const (
-	FROM = "grupo35soat8@gmail.com"
+	// FROM       = "grupo35soat8@gmail.com"
+	EXPIRATION = 60 * time.Minute
 )
 
 type SESService struct {
@@ -74,6 +78,14 @@ func NewSESClient() *sesv2.Client {
 	return sesv2.NewFromConfig(cfg)
 }
 
+func NewS3Client() *s3.Client {
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		log.Fatalf("unable to load SDK config, %v", err)
+	}
+	return s3.NewFromConfig(cfg)
+}
+
 type EmailService interface {
 	SendEmail(ctx context.Context, from, to, content string) error
 }
@@ -86,12 +98,12 @@ func NewSendEmailUseCase(emailService EmailService) *SendEmailUseCase {
 	return &SendEmailUseCase{emailService: emailService}
 }
 
-func (uc *SendEmailUseCase) Execute(ctx context.Context, to, content string) error {
+func (uc *SendEmailUseCase) Execute(ctx context.Context, from, to, content string) error {
 	// Lógica do caso de uso de envio de e-mail
 	// Aqui você pode processar o conteúdo do e-mail e enviar
 
 	// Enviar e-mail utilizando o serviço injetado
-	return uc.emailService.SendEmail(ctx, FROM, to, content)
+	return uc.emailService.SendEmail(ctx, from, to, content)
 }
 
 func init() {
@@ -106,9 +118,13 @@ func init() {
 
 func handleRequest(ctx context.Context, sqsEvent events.SQSEvent) error {
 	// Configurações do serviço de envio de e-mail
+	s3Client := NewS3Client()
 	sesClient := NewSESClient()
 	emailService := NewSESService(sesClient)
 	sendEmailUseCase := NewSendEmailUseCase(emailService)
+
+	bucketName := os.Getenv("BUCKET_NAME")
+	fromEmail := os.Getenv("FROM_EMAIL")
 
 	// Processando mensagens da fila SQS
 	for _, message := range sqsEvent.Records {
@@ -121,7 +137,22 @@ func handleRequest(ctx context.Context, sqsEvent events.SQSEvent) error {
 			log.Fatalf("Erro ao fazer unmarshal: %v", errr)
 		}
 
-		err := sendEmailUseCase.Execute(ctx, messageBody.User.Email, templateEmail(messageBody.ZipPath))
+		// Gerar a URL assinada
+		presignClient := s3.NewPresignClient(s3Client)
+
+		req, errorpre := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
+			Bucket: aws.String(bucketName),
+			Key:    aws.String(messageBody.ZipPath),
+		}, func(o *s3.PresignOptions) {
+			o.Expires = EXPIRATION
+		})
+		if errorpre != nil {
+			log.Printf("Erro ao gerar URL assinada: %v", errorpre)
+		}
+
+		log.Printf("URL assinada: %s", req.URL)
+
+		err := sendEmailUseCase.Execute(ctx, fromEmail, messageBody.User.Email, templateEmail(req.URL))
 		if err != nil {
 			log.Printf("Erro ao enviar e-mail: %v", err)
 			return err
