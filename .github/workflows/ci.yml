@@ -37,7 +37,6 @@ jobs:
       uses: SonarSource/sonarqube-scan-action@v4
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: https://sonarcloud.io
         
     # Rodar Sonar Quality Gate
     - name: SonarQube Quality Gate check
@@ -48,4 +47,3 @@ jobs:
         pollingTimeoutSec: 600
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: https://sonarcloud.io
