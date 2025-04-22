@@ -2,87 +2,37 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
-	"os"
-	"time"
 
-	"github.com/8soat-grupo35/grupo35-video-notification/internal/domain"
-	"github.com/8soat-grupo35/grupo35-video-notification/internal/infra/awsresources"
+	"github.com/8soat-grupo35/grupo35-video-notification/internal/adapters/email"
+	"github.com/8soat-grupo35/grupo35-video-notification/internal/adapters/handler"
+	"github.com/8soat-grupo35/grupo35-video-notification/internal/adapters/storage"
 	"github.com/8soat-grupo35/grupo35-video-notification/internal/usecase"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 )
-
-const (
-	EXPIRATION = 60 * time.Minute
-)
-
-type User struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
-}
-
-type Message struct {
-	User    User   `json:"user"`
-	ZipPath string `json:"zip_path"`
-}
 
 func handleRequest(ctx context.Context, sqsEvent events.SQSEvent) error {
-	cfg, err := config.LoadDefaultConfig(context.Background())
+	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
-		log.Fatalf("unable to load SDK config, %v", err)
+		panic(err)
 	}
 
-	// Configurações do serviço de envio de e-mail
-	s3Client := awsresources.NewS3Client(cfg)
-	sesClient := awsresources.NewSESClient(cfg)
-	emailService := awsresources.NewSESService(&sesClient)
+	sesClient := sesv2.NewFromConfig(cfg)
+	s3Client := s3.NewFromConfig(cfg)
 
-	sendEmailUseCase := usecase.NewSendEmailUseCase(emailService)
+	emailService := email.NewSESService(sesClient)
+	presigner := storage.NewPresignS3(s3Client)
 
-	bucketName := os.Getenv("BUCKET_NAME")
-	fromEmail := os.Getenv("FROM_EMAIL")
+	sendEmailUC := usecase.NewSendEmailUseCase(emailService)
+	sqsHandler := handler.NewSQSHandler(sendEmailUC, presigner.GeneratePresignedURL)
 
-	// Processando mensagens da fila SQS
-	for _, message := range sqsEvent.Records {
-		// Aqui você pode realizar o parse da mensagem da fila conforme necessário
-		var messageBody Message
+	sqsHandler.Handle(ctx, sqsEvent)
 
-		// Fazendo o Unmarshal do JSON para a struct User
-		errr := json.Unmarshal([]byte(message.Body), &messageBody)
-		if errr != nil {
-			log.Fatalf("Erro ao fazer unmarshal: %v", errr)
-		}
-
-		// Gerar a URL assinada
-		presignClient := s3.NewPresignClient(s3Client.Client)
-
-		req, errorpre := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
-			Bucket: aws.String(bucketName),
-			Key:    aws.String(messageBody.ZipPath),
-		}, func(o *s3.PresignOptions) {
-			o.Expires = EXPIRATION
-		})
-		if errorpre != nil {
-			log.Printf("Erro ao gerar URL assinada: %v", errorpre)
-		}
-
-		log.Printf("URL assinada: %s", req.URL)
-
-		email := domain.NewEmail(messageBody.User.Email, req.URL)
-
-		err := sendEmailUseCase.Execute(ctx, fromEmail, email)
-		if err != nil {
-			log.Printf("Erro ao enviar e-mail: %v", err)
-			return err
-		}
-
-		log.Printf("Mensagem processada: %s", messageBody.ZipPath)
-	}
+	log.Printf("Lambda processado com sucesso")
 
 	return nil
 }
