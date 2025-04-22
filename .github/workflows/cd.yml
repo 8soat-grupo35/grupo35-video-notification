@@ -49,7 +49,4 @@ jobs:
 
       - name: Update Lambda
         run: |
-            aws lambda update-function-code \
-            --function-name lambdasample    \     # Nome da função Lambda que você está atualizando
-            --zip-file fileb://myFunction.zip \   # Caminho para o arquivo ZIP com o código da função Lambda
-            --region ${{ secrets.AWS_REGION_DEFAULT }}
+          aws lambda update-function-code --function-name lambdasample --zip-file fileb://myFunction.zip --region ${{ secrets.AWS_REGION_DEFAULT }}
