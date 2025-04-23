@@ -24,7 +24,7 @@ func NewEmailService() *EmailService {
 func (s *EmailService) SendEmail(ctx context.Context, from string, email *domain.Email) error {
 	auth := smtp.PlainAuth("", from, os.Getenv("FROM_EMAIL_PASSWORD"), SMTP)
 
-	msg := "Subject: " + email.GetSubject() + "\n" + email.Template()
+	msg := "Subject: " + email.GetSubject() + "\nContent-Type: text/html; charset=UTF-8\n" + email.Template()
 
 	err := smtp.SendMail(SMTP+":"+SMTPPort, auth, from, []string{email.GetToEmail()}, []byte(msg))
 	if err != nil {
