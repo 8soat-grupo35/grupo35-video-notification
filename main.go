@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 )
 
 func handleRequest(ctx context.Context, sqsEvent events.SQSEvent) error {
@@ -21,19 +20,21 @@ func handleRequest(ctx context.Context, sqsEvent events.SQSEvent) error {
 		panic(err)
 	}
 
-	sesClient := sesv2.NewFromConfig(cfg)
 	s3Client := s3.NewFromConfig(cfg)
 
-	emailService := email.NewSESService(sesClient)
+	emailService := email.NewEmailService()
 	presigner := storage.NewPresignS3(s3Client)
 
 	sendEmailUC := usecase.NewSendEmailUseCase(emailService)
 	sqsHandler := handler.NewSQSHandler(sendEmailUC, presigner.GeneratePresignedURL)
 
-	sqsHandler.Handle(ctx, sqsEvent)
+	errr := sqsHandler.Handle(ctx, sqsEvent)
+	if errr != nil {
+		log.Printf("Erro ao processar a mensagem: %v", errr)
+		return errr
+	}
 
-	log.Printf("Lambda processado com sucesso")
-
+	log.Printf("Lambda processada com sucesso")
 	return nil
 }
 

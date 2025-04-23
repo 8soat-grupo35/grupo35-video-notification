@@ -16,7 +16,7 @@ import (
 const EXPIRATION = 24 * time.Hour
 
 type User struct {
-	ID    int    `json:"id"`
+	ID    string `json:"id"`
 	Email string `json:"email"`
 }
 

@@ -4,43 +4,29 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/smtp"
+	"os"
 
 	domain "github.com/8soat-grupo35/grupo35-video-notification/internal/domain/entity"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/sesv2"
-	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 )
 
-type SESService struct {
-	Client *sesv2.Client
+const (
+	SMTP     = "smtp.gmail.com"
+	SMTPPort = "587"
+)
+
+type EmailService struct{}
+
+func NewEmailService() *EmailService {
+	return &EmailService{}
 }
 
-func NewSESService(client *sesv2.Client) *SESService {
-	return &SESService{Client: client}
-}
+func (s *EmailService) SendEmail(ctx context.Context, from string, email *domain.Email) error {
+	auth := smtp.PlainAuth("", from, os.Getenv("FROM_EMAIL_PASSWORD"), SMTP)
 
-func (s *SESService) SendEmail(ctx context.Context, from string, email *domain.Email) error {
-	// Envio do e-mail usando o SES
-	input := &sesv2.SendEmailInput{
-		FromEmailAddress: aws.String(from),
-		Destination: &types.Destination{
-			ToAddresses: []string{email.GetToEmail()},
-		},
-		Content: &types.EmailContent{
-			Simple: &types.Message{
-				Subject: &types.Content{
-					Data: aws.String(email.GetSubject()),
-				},
-				Body: &types.Body{
-					Html: &types.Content{
-						Data: aws.String(email.Template()),
-					},
-				},
-			},
-		},
-	}
+	msg := "Subject: " + email.GetSubject() + "\n" + email.Template()
 
-	_, err := s.Client.SendEmail(ctx, input)
+	err := smtp.SendMail(SMTP+":"+SMTPPort, auth, from, []string{email.GetToEmail()}, []byte(msg))
 	if err != nil {
 		log.Printf("Erro ao enviar e-mail: %v", err)
 		return fmt.Errorf("falha ao enviar e-mail: %w", err)
